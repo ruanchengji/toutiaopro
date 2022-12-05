@@ -1,33 +1,48 @@
+from datetime import datetime
+
 import scrapy
 from selenium import webdriver
 from toutiaopro.items import ToutiaoproItem
 from time import sleep
 from scrapy.http import HtmlResponse
+import re
 
 class ToutiaoSpider(scrapy.Spider):
     name = 'toutiao'
-    data = input("请输入要爬取的关键字:")
-    number = int(input("请输入要爬取的数量:"))  # 控制爬取数量
-    address = 'https://www.toutiao.com/search/?keyword='+data
+    data = '重庆银行'
+    number = 2  # 控制爬取数量
+    address = 'https://so.toutiao.com/search?dvpf=pc&source=search_subtab_switch&keyword='
+    address1 = '&pd=information&action_type=search_subtab_switch&page_num=0&search_id=&from=news&cur_tab_title=news'
+
     start_urls = [address]
     urls = []
     num = 0 #控制浏览器下滑循环次数
     index = 0 #控制收集连接条数
-
+    path = r'D:\PyCharm\workplace\toutiaopro\venv\Scripts\chromedriver.exe'
 
     #初始化浏览器
-    def __init__(self):
+    #初始化浏览器
+    def __init__(self,Q,data,savePath,startDate,endDate,num):
         #根据自己的chrome驱动路径设置
-        path = r'H:\PythonCode\Spider\scrapy\wangyi\wangyi\spiders\chromedriver.exe'
-        self.bro1 = webdriver.Chrome(executable_path=path)
-        self.bro2 = webdriver.Chrome(executable_path=path)
+        self.Q = Q
+        self.data = data
+        self.savePath = savePath
+        self.startDate = startDate
+        self.endDate = endDate
+        self.number = num
+        self.start_urls = [self.address+data+self.address1]
+        self.bro1 = webdriver.Chrome(executable_path=self.path)
+        self.bro2 = webdriver.Chrome(executable_path=self.path)
+    def start_requests(self):
 
+        for url in self.start_urls:
+            self.Q.put('开始采集今日头条信息,采集：'+url)
+            yield scrapy.Request(url,callback=self.parse)
 
     #获取到关键字的文章列表
     def parse(self, response):
         #获取到列表属性
-        div_list = response.xpath('/html/body/div/div[4]/div[2]/div[3]/div/div/div')
-
+        div_list = response.xpath("/html/body/div[2]/div[2]/div[@class='result-content']")
         ########
         #获取每篇文章
         # for div in div_list:
@@ -39,16 +54,18 @@ class ToutiaoSpider(scrapy.Spider):
         ##############
 
         for div in div_list:
-            url_temp = div.xpath('./div/div/div/div/div//@href').extract_first()
+            url_temp = div.xpath('./div/div/div/div//@href').extract_first()
             #链接拼接
-            url = 'https://www.toutiao.com/a'+url_temp.split('/',3)[2]
+            if url_temp is None:
+                continue
+            url = 'https://so.toutiao.com'+url_temp
             self.urls.append(url)
             print("--------")
             print(url)
             print("---------")
 
         #控制爬取数量
-        while self.index<=self.number:
+        while self.index<self.number:
             # for href in self.urls:
             #     yield scrapy.Request(href, callback=self.parse_model)
             index = self.index
@@ -78,26 +95,41 @@ class ToutiaoSpider(scrapy.Spider):
     #文章解析
     def parse_model(self,response):
 
-        title = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/h1/text()').extract_first()
-        content = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/article//text()').extract()
-        content = ''.join(content)
-        span = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span')
-        if len(span) == 2:
-            author = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[1]/text()').extract_first()
-            time = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[2]/text()').extract_first()
-        else:
-            author = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[2]/text()').extract_first()
-            time = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[3]/text()').extract_first()
+        title = response.xpath('//*[@id="root"]/div[2]/div[2]/div[1]/div/div/div/div/h1/text()').extract_first()
+        contentList = response.xpath('//*[@id="root"]/div[2]/div[2]/div[1]/div/div/div/div/article/p').extract()
+        content = ''
+        regex = re.compile(r"<[^>]+>|</[^<]+>")
+        for p in contentList:
+            str=  regex.sub('',p)
+            content=content+str+'\r\n'
+        times = response.xpath('//*[@id="root"]/div[2]/div[2]/div[1]/div/div/div/div/div/span').extract()
+        time=''
+        for str in times:
+            time+=str
+        mat = re.search(r"(\d{4}-\d{1,2}-\d{1,2})", time)
+        issued_time = mat.group(0)
+        issued_date = datetime.strptime(issued_time, '%Y-%m-%d')
+        startDate = datetime.strptime(self.startDate, '%Y-%m-%d')
+        endDate = datetime.strptime(self.endDate, '%Y-%m-%d')
+        url = response.request.url
+        # if len(span) == 2:
+        #     author = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[1]/text()').extract_first()
+        #     time = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[2]/text()').extract_first()
+        # else:
+        #     author = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[2]/text()').extract_first()
+        #     time = response.xpath('//*[@id="root"]/div/div[2]/div[1]/div[2]/div[1]/span[3]/text()').extract_first()
 
         #提交管道
         #self.bro1.excute_script('window.scrollTo(0, document.body.scrollHeight)')
         item = ToutiaoproItem()
         item['title'] = title
         item['content'] = content
-        item['time'] = time
-        item['author'] = author
+        item['time'] = issued_time
+        item['url'] = url
+        item['savePath'] = self.savePath
+        if (issued_date <= endDate and issued_date >= startDate):
+            yield item
 
-        yield item
 
     #列表解析
     def artical_list(self,new_response):
@@ -112,3 +144,6 @@ class ToutiaoSpider(scrapy.Spider):
             print("!!!!!!!!!!!!!")
             print(href_temp)
             print("!!!!!!!!!!!!")
+    def close(spider, reason):
+        spider.Q.put('采集结束')
+        pass

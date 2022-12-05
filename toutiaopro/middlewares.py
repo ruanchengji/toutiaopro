@@ -9,6 +9,7 @@ from scrapy import signals
 from itemadapter import is_item, ItemAdapter
 from scrapy.http import HtmlResponse
 from time import sleep
+from selenium import webdriver
 import random
 
 class ToutiaoproDownloaderMiddleware:
@@ -26,19 +27,28 @@ class ToutiaoproDownloaderMiddleware:
         return None
 
     def process_response(self, request, response, spider):
-        bro1 = spider.bro1 #文章列表浏览器
-        bro2 = spider.bro2 #具体文章浏览器
-        #请求地址在文章列表里
+
+        # bro1 = webdriver.Chrome(executable_path=spider.path)
+        # bro1.get(request.url)
+        # sleep(2)
+        # page_text = bro1.page_source
+        #
+        # response = HtmlResponse(url=request.url, body=page_text, encoding='utf-8', request=request)
+        #
+        # return response
+        self.bro1 = spider.bro1 #文章列表浏览器
+        self.bro2 = spider.bro2 #具体文章浏览器
+        # 请求地址在文章列表里
         if request.url in spider.urls:
-            bro2.get(request.url)
+            self.bro2.get(request.url)
             sleep(2)
-            page_text = bro2.page_source
+            page_text = self.bro2.page_source
             new_response = HtmlResponse(url=request.url, body=page_text, encoding='utf-8', request=request)
             return new_response
         else:
-            bro1.get(request.url)
+            self.bro1.get(request.url)
             sleep(2)
-            page_text = bro1.page_source
+            page_text = self.bro1.page_source
 
             response = HtmlResponse(url=request.url, body=page_text, encoding='utf-8', request=request)
 

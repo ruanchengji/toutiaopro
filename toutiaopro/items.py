@@ -12,4 +12,8 @@ class ToutiaoproItem(scrapy.Item):
     content = scrapy.Field()
     time = scrapy.Field()
     author = scrapy.Field()
+    url = scrapy.Field()
+    savePath = scrapy.Field()
+    source = scrapy.Field()
+    keyword = scrapy.Field()
 
