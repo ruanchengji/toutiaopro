@@ -1,3 +1,4 @@
+
 from datetime import datetime
 
 import scrapy
@@ -19,11 +20,12 @@ class TotalSpider(scrapy.Spider):
     urls = []
     num = 0 #控制浏览器下滑循环次数
     index = 0 #控制收集连接条数
-    path = r'D:\PyCharm\workplace\toutiaopro\venv\Scripts\chromedriver.exe'
+    # path = r'D:\PyCharm\workplace\toutiaopro\venv\Scripts\chromedriver.exe'
+
 
     #初始化浏览器
     #初始化浏览器
-    def __init__(self,Q,data,savePath,startDate,endDate,num):
+    def __init__(self,Q,data,savePath,startDate,endDate,num,driverPath ):
         #根据自己的chrome驱动路径设置
         self.Q = Q
         self.data = data
@@ -31,6 +33,7 @@ class TotalSpider(scrapy.Spider):
         self.startDate = startDate
         self.endDate = endDate
         self.number = num
+        self.path = driverPath +'\chromedriver.exe'
         # keywordList = self.data.replace('，', ',').split(',')
         # for keyword in keywordList:
         #     self.start_urls.append(self.toutiaoAddress+keyword+self.toutiaoAddress1)
@@ -38,10 +41,12 @@ class TotalSpider(scrapy.Spider):
         self.start_urls.append('https://search.cqnews.net/search')
         self.start_urls.append('https://www.toutiao.com/')
         option = webdriver.ChromeOptions()
-        option.add_argument('headless')
-        self.bro1 = webdriver.Chrome()
-        self.bro2 = webdriver.Chrome()
-        self.bro3 = webdriver.Chrome()
+        # option.add_argument('headless')
+        option.binary_location = driverPath +'\chrome.exe'
+        self.Q.put("driver path:"+self.path)
+        self.bro1 = webdriver.Chrome(executable_path=self.path)
+        self.bro2 = webdriver.Chrome(executable_path=self.path)
+        self.bro3 = webdriver.Chrome(executable_path=self.path)
     def start_requests(self):
 
         for url in self.start_urls:
@@ -61,8 +66,8 @@ class TotalSpider(scrapy.Spider):
                 self.bro2.get(tempUrl)
                 sleep(2)
                 #滑动滚动条
-                self.bro2.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-                sleep(2)
+                # self.bro2.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+                # sleep(2)
                 temp_text = self.bro2.page_source
                 temp_response = HtmlResponse(url=response.request.url, body=temp_text, encoding='utf-8',
                                             request=response.request)
@@ -96,8 +101,8 @@ class TotalSpider(scrapy.Spider):
                 self.bro3.get(tempUrl)
                 sleep(2)
                 #滑动滚动条
-                self.bro3.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-                sleep(2)
+                # self.bro3.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+                # sleep(2)
                 temp_text = self.bro3.page_source
                 temp_response = HtmlResponse(url=response.request.url, body=temp_text, encoding='utf-8',
                                             request=response.request)

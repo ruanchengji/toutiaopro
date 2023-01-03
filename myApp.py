@@ -18,13 +18,67 @@ from toutiaopro.spiders.total import TotalSpider
 import xlrd
 from xlutils.copy import copy
 
+import scrapy.spiderloader
+import scrapy.statscollectors
+import scrapy.logformatter
+import scrapy.dupefilters
+import scrapy.squeues
+
+import scrapy.extensions.spiderstate
+import scrapy.extensions.corestats
+import scrapy.extensions.telnet
+import scrapy.extensions.logstats
+import scrapy.extensions.memusage
+import scrapy.extensions.memdebug
+import scrapy.extensions.feedexport
+import scrapy.extensions.closespider
+import scrapy.extensions.debug
+import scrapy.extensions.httpcache
+import scrapy.extensions.statsmailer
+import scrapy.extensions.throttle
+
+import scrapy.core.scheduler
+import scrapy.core.engine
+import scrapy.core.scraper
+import scrapy.core.spidermw
+import scrapy.core.downloader
+
+import scrapy.downloadermiddlewares.stats
+import scrapy.downloadermiddlewares.httpcache
+import scrapy.downloadermiddlewares.cookies
+import scrapy.downloadermiddlewares.useragent
+import scrapy.downloadermiddlewares.httpproxy
+import scrapy.downloadermiddlewares.ajaxcrawl
+# import scrapy.downloadermiddlewares.chunked
+import scrapy.downloadermiddlewares.defaultheaders
+import scrapy.downloadermiddlewares.downloadtimeout
+import scrapy.downloadermiddlewares.httpauth
+import scrapy.downloadermiddlewares.httpcompression
+import scrapy.downloadermiddlewares.redirect
+import scrapy.downloadermiddlewares.retry
+import scrapy.downloadermiddlewares.robotstxt
+
+import scrapy.spidermiddlewares.depth
+import scrapy.spidermiddlewares.httperror
+import scrapy.spidermiddlewares.offsite
+import scrapy.spidermiddlewares.referer
+import scrapy.spidermiddlewares.urllength
+
+import scrapy.pipelines
+
+import scrapy.core.downloader.handlers.http
+import scrapy.core.downloader.handlers.datauri
+import scrapy.core.downloader.handlers.file
+import scrapy.core.downloader.handlers.s3
+import scrapy.core.downloader.handlers.ftp
+
 
 class CrawlWindows(QWidget):
     def __init__(self):
         super(CrawlWindows, self).__init__()
         self.user_setting_path = os.getcwd()
         print(self.user_setting_path)
-
+        self.driverPath = os.getcwd()
         try:
             #doc = Document(path+"\info.docx")  # 读取现有的word 建立文档对象
             wb = xlrd.open_workbook(self.user_setting_path + "\setting_user.xls", formatting_info=True)
@@ -36,6 +90,7 @@ class CrawlWindows(QWidget):
             sheet = xls.get_sheet('sheet1')
             sheet.write(0,0,'重庆银行,中信银行')
             sheet.write(1,0,r'C:\Users\Admin')
+            xls.save(self.user_setting_path + "\setting_user.xls")
 
         wb = xlrd.open_workbook(self.user_setting_path + "\setting_user.xls", formatting_info=True)
 
@@ -57,7 +112,7 @@ class CrawlWindows(QWidget):
         self.endDate.setDisplayFormat("yyyy-MM-dd")
 
         # self.crawlName.addItems(['今日头条', '华龙网'])
-        self.pageNum.addItems(['1','2','3','4','5','6','7','8','9','10'])
+        self.pageNum.addItems(['2','1','3','4','5','6','7','8','9','10'])
         self.save_location = QLineEdit(savepath,self)
         self.log_browser = QTextBrowser(self)
         self.crawl_button = QPushButton('Start crawl', self)
@@ -105,7 +160,7 @@ class CrawlWindows(QWidget):
             sheet.write(0, 0, keywords)
             sheet.write(1, 0, save_location)
             xls.save(self.user_setting_path + "\setting_user.xls")
-            self.p = Process(target=crawl_run, args=(self.Q, keywords, save_location,startDate,endDate,pageNum))
+            self.p = Process(target=crawl_run, args=(self.Q, keywords, save_location,startDate,endDate,pageNum,self.driverPath))
             self.log_browser.setText('The collection process is starting...')
             self.p.start()
             self.log_thread.keywords = keywords
@@ -185,13 +240,13 @@ class LogThread(QThread):
                 self.msleep(10)
 
 
-def crawl_run(Q, keywords, save_location,startDate,endDate,pageNum):
+def crawl_run(Q, keywords, save_location,startDate,endDate,pageNum,driverPath):
     # CrawlerProcess
     settings = get_project_settings()
 
 
     process = CrawlerProcess(settings=settings)
-    process.crawl(TotalSpider,Q=Q,data = keywords,savePath=save_location,startDate=startDate,endDate=endDate,num=pageNum)
+    process.crawl(TotalSpider,Q=Q,data = keywords,savePath=save_location,startDate=startDate,endDate=endDate,num=pageNum,driverPath=driverPath)
     process.start()
 
 
